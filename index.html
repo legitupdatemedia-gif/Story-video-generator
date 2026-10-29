@@ -3,101 +3,485 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StoryVid - Audio = Subtitles Sync</title>
+<title>StoryVid AI - 20 Second Video Maker</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<style>body{background:#0F0F14;color:white}.card{background:#1A1A22;border:1px solid #2A2A35}.purple{background:#8B5CF6}</style>
+
+<style>
+body {
+  background: #0F0F14;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+.card {
+  background: #1A1A22;
+  border: 1px solid #2A2A35;
+}
+.btn {
+  background: #8B5CF6;
+  color: white;
+}
+textarea, input, select {
+  background: #111118;
+  border: 1px solid #333;
+  color: white;
+}
+</style>
 </head>
+
 <body class="p-3 max-w-xl mx-auto">
-<h1 class="text-xl font-bold text-center mt-3">StoryVid - Voice = Subtitles</h1>
 
-<div class="card p-3 rounded-xl mt-3">
-<textarea id="script" class="w-full p-3 rounded bg-black border border-gray-700 h-32 text-sm">But what Amara didn't know was that the rich man who had just visited her market was about to change her life forever. In Freetown, she sold groundnut every day to feed her family. That morning, the man returned and said your honesty yesterday touched my heart. I want to sponsor your children to school. Amara cried tears of joy. Her story proves honesty still opens big doors in Sierra Leone.</textarea>
-<button onclick="autoSplit()" class="w-full mt-2 card p-2 rounded text-xs">✂️ Auto-split story into images</button>
+<h1 class="text-2xl font-bold text-center mt-4">
+🎬 StoryVid AI
+</h1>
+
+<p class="text-center text-gray-400 text-sm mt-2">
+Generate 20-second story videos
+</p>
+
+<!-- STORY GENERATOR -->
+<div class="card p-4 rounded-xl mt-5">
+
+<h2 class="font-bold mb-3">✍️ Generate Your Story</h2>
+
+<textarea id="prompt"
+class="w-full p-3 rounded-lg h-24"
+placeholder="Enter your story idea..."></textarea>
+
+<button onclick="generateStory()"
+class="btn w-full p-3 rounded-lg mt-3 font-bold">
+✨ Generate Story for Free
+</button>
+
+<textarea id="story"
+class="w-full p-3 rounded-lg h-32 mt-3"
+placeholder="Your generated story will appear here..."></textarea>
+
+<button onclick="splitStory()"
+class="w-full bg-blue-600 p-3 rounded-lg mt-3">
+✂️ Split Story Into 2 Parts
+</button>
+
 </div>
 
-<div class="card p-3 rounded-xl mt-3">
-<p class="font-bold text-sm">📸 UPLOAD IMAGES (Tap)</p>
-<input type="file" id="files" multiple accept="image/*" class="mt-2">
-<div id="preview" class="grid grid-cols-1 gap-2 mt-3"></div>
+<!-- SCENES -->
+<div class="card p-4 rounded-xl mt-4">
+
+<h2 class="font-bold mb-3">🎞️ Story Scenes</h2>
+
+<div class="mb-4">
+<label class="text-sm">Part 1 (0–10 seconds)</label>
+
+<textarea id="scene1"
+class="w-full p-3 rounded-lg h-24 mt-2"
+placeholder="First part of the story"></textarea>
+
+<input type="file"
+id="image1"
+accept="image/*"
+class="w-full mt-3">
+
 </div>
 
-<div class="card p-3 rounded-xl mt-3">
-<canvas id="canvas" width="720" height="1280" class="w-full rounded-xl bg-black" style="max-width:360px;margin:auto;display:block"></canvas>
-<div id="sub" class="text-center mt-2 p-3 bg-black rounded-xl font-bold text-yellow-300 text-[18px] leading-tight min-h-[80px]">Subtitles will show here - Same as audio</div>
-<button onclick="playAll()" class="w-full purple mt-3 p-4 rounded-xl font-bold">▶ PLAY - Audio Will Match Subtitles Exactly</button>
-<button onclick="stopAll()" class="w-full card mt-2 p-3 rounded-xl">Stop</button>
-<button onclick="record()" class="w-full bg-green-600 mt-2 p-3 rounded-xl font-bold">⬇ Record & Download Video</button>
+<div>
+<label class="text-sm">Part 2 (10–20 seconds)</label>
+
+<textarea id="scene2"
+class="w-full p-3 rounded-lg h-24 mt-2"
+placeholder="Second part of the story"></textarea>
+
+<input type="file"
+id="image2"
+accept="image/*"
+class="w-full mt-3">
+
+</div>
+</div>
+
+<!-- VOICE -->
+<div class="card p-4 rounded-xl mt-4">
+
+<h2 class="font-bold mb-3">🎤 Voice Over</h2>
+
+<select id="voice" class="w-full p-3 rounded-lg">
+<option value="male">Male Voice</option>
+<option value="female">Female Voice</option>
+<option value="deep">Deep Voice</option>
+</select>
+
+<button onclick="startRecording()"
+class="w-full bg-green-600 p-3 rounded-lg mt-3">
+🎙️ Record My Voice
+</button>
+
+<button onclick="stopRecording()"
+class="w-full bg-red-600 p-3 rounded-lg mt-2">
+⏹ Stop Recording
+</button>
+
+<audio id="audioPreview" controls class="w-full mt-3"></audio>
+
+</div>
+
+<!-- VIDEO -->
+<div class="card p-4 rounded-xl mt-4">
+
+<h2 class="font-bold mb-3">🎬 Video Preview</h2>
+
+<canvas id="canvas"
+width="720"
+height="1280"
+class="w-full rounded-lg bg-black">
+</canvas>
+
+<button onclick="previewVideo()"
+class="btn w-full p-3 rounded-lg mt-3">
+▶ Preview Video
+</button>
+
+<button onclick="downloadVideo()"
+class="w-full bg-green-600 p-3 rounded-lg mt-3 font-bold">
+⬇️ Generate & Download 20s Video
+</button>
+
+<p id="status"
+class="text-center text-sm text-gray-400 mt-3">
+Ready to create your video
+</p>
+
 </div>
 
 <script>
-let images=[]; let idx=0; let playing=false;
-document.getElementById('files').addEventListener('change', e=>{
- for(let f of e.target.files){
-  let r=new FileReader(); r.onload=ev=>{images.push({src:ev.target.result, text:''}); render();}; r.readAsDataURL(f);
- }
-});
-function autoSplit(){
- let s=document.getElementById('script').value.split(/[.!?]+/).filter(x=>x.trim().length>5);
- if(images.length==0){alert('Upload images first'); return;}
- s.forEach((txt,i)=>{ if(images[i]) images[i].text=txt.trim()+'.'; });
- render();
-}
-function render(){
- let p=document.getElementById('preview'); p.innerHTML='';
- images.forEach((im,i)=>{
-  p.innerHTML+=`<div class="flex gap-2 card p-2 rounded"><img src="${im.src}" class="w-20 h-20 object-cover rounded"><div class="flex-1"><p class="text-xs text-gray-400">Image ${i+1} - This text = audio = subtitle</p><textarea oninput="images[${i}].text=this.value" class="w-full text-sm p-2 bg-black border border-gray-700 rounded mt-1" rows="3">${im.text}</textarea></div></div>`;
- });
-}
-let canvas=document.getElementById('canvas'), ctx=canvas.getContext('2d'), sub=document.getElementById('sub');
-function draw(i, scale=1){
- let img=new Image(); img.src=images[i].src;
- img.onload=()=>{
-  ctx.clearRect(0,0,720,1280);
-  let sc=Math.max(720/img.width,1280/img.height)*scale;
-  let w=img.width*sc, h=img.height*sc;
-  ctx.drawImage(img,(720-w)/2,(1280-h)/2,w,h);
-  // draw subtitle on canvas too
-  ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(0,980,720,300);
-  ctx.fillStyle='yellow'; ctx.strokeStyle='black'; ctx.lineWidth=5; ctx.font='bold 36px sans-serif'; ctx.textAlign='center';
-  let words=images[i].text.match(/.{1,35}(\s|$)/g)||[images[i].text];
-  words.forEach((l,j)=>{ let y=1050+j*45; ctx.strokeText(l.trim(),360,y); ctx.fillText(l.trim(),360,y); });
- };
-}
 
-function playAll(){
- if(images.length==0){alert('Upload images'); return;}
- playing=true; idx=0; speak();
-}
-function speak(){
- if(!playing || idx>=images.length){playing=false; sub.innerText='Finished'; return;}
- let txt=images[idx].text;
- if(!txt){idx++; speak(); return;}
- sub.innerText=txt;
- draw(idx,1);
- // TALKING EFFECT - zoom pulse
- let pulse=setInterval(()=>{draw(idx, 1+Math.random()*0.08)},120);
- let u=new SpeechSynthesisUtterance(txt);
- u.rate=0.9;
- u.onend=()=>{clearInterval(pulse); idx++; setTimeout(speak,400);};
- // Word-by-word highlight in subtitle box
- u.onboundary=e=>{
-  if(e.name==='word'){
-   let spoken=txt.substring(0,e.charIndex+e.charLength);
-   sub.innerHTML=spoken+'<span class="bg-yellow-400 text-black">'+txt.substring(e.charIndex,e.charIndex+e.charLength)+'</span>'+txt.substring(e.charIndex+e.charLength);
+let recorder;
+let recordedChunks = [];
+let audioBlob = null;
+let audioURL = null;
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+// FREE STORY GENERATOR
+// Uses a simple built-in story template.
+// Connect an AI API for full prompt-based story generation.
+
+function generateStory() {
+
+  const prompt = document.getElementById("prompt").value.trim();
+
+  if (!prompt) {
+    alert("Enter your story idea first.");
+    return;
   }
- };
- speechSynthesis.speak(u);
-}
-function stopAll(){playing=false; speechSynthesis.cancel();}
 
-function record(){
- let stream=canvas.captureStream(30);
- let rec=new MediaRecorder(stream,{mimeType:'video/webm'}); let chunks=[];
- rec.ondataavailable=e=>chunks.push(e.data);
- rec.onstop=()=>{let b=new Blob(chunks,{type:'video/webm'}); let a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='StoryVid-Subtitles-Match-Audio.webm'; a.click();};
- rec.start(); playAll();
- setTimeout(()=>{rec.stop(); stopAll();}, images.length*7000);
+  const story =
+  prompt +
+  ". A new journey begins. Unexpected challenges change everything. " +
+  "Through courage, hope, and determination, the main character discovers " +
+  "that every difficult moment can lead to a brighter future.";
+
+  document.getElementById("story").value = story;
+
+  splitStory();
+
 }
+
+// SPLIT STORY INTO 2 PARTS
+function splitStory() {
+
+  const story = document.getElementById("story").value.trim();
+
+  if (!story) {
+    alert("Generate or enter a story first.");
+    return;
+  }
+
+  const sentences = story.match(/[^.!?]+[.!?]*/g) || [story];
+
+  const midpoint = Math.ceil(sentences.length / 2);
+
+  document.getElementById("scene1").value =
+    sentences.slice(0, midpoint).join(" ").trim();
+
+  document.getElementById("scene2").value =
+    sentences.slice(midpoint).join(" ").trim();
+
+}
+
+// VOICE RECORDING
+async function startRecording() {
+
+  try {
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: true
+    });
+
+    recorder = new MediaRecorder(stream);
+
+    recordedChunks = [];
+
+    recorder.ondataavailable = e => {
+      if (e.data.size > 0) {
+        recordedChunks.push(e.data);
+      }
+    };
+
+    recorder.onstop = () => {
+
+      audioBlob = new Blob(recordedChunks, {
+        type: "audio/webm"
+      });
+
+      audioURL = URL.createObjectURL(audioBlob);
+
+      document.getElementById("audioPreview").src = audioURL;
+
+      document.getElementById("status").innerText =
+        "Voice recording ready";
+
+    };
+
+    recorder.start();
+
+    document.getElementById("status").innerText =
+      "Recording your voice...";
+
+  } catch (error) {
+
+    alert("Please allow microphone access.");
+
+  }
+
+}
+
+function stopRecording() {
+
+  if (recorder && recorder.state === "recording") {
+    recorder.stop();
+  }
+
+}
+
+// IMAGE LOADING
+function loadImage(input) {
+
+  return new Promise(resolve => {
+
+    if (!input.files || !input.files[0]) {
+      resolve(null);
+      return;
+    }
+
+    const img = new Image();
+
+    img.onload = () => resolve(img);
+
+    img.src = URL.createObjectURL(input.files[0]);
+
+  });
+
+}
+
+// DRAW SCENE
+async function drawScene(sceneNumber) {
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  let imageInput = sceneNumber === 1
+    ? document.getElementById("image1")
+    : document.getElementById("image2");
+
+  let text = sceneNumber === 1
+    ? document.getElementById("scene1").value
+    : document.getElementById("scene2").value;
+
+  const img = await loadImage(imageInput);
+
+  if (img) {
+
+    const scale = Math.max(
+      canvas.width / img.width,
+      canvas.height / img.height
+    );
+
+    const width = img.width * scale;
+    const height = img.height * scale;
+
+    ctx.drawImage(
+      img,
+      (canvas.width - width) / 2,
+      (canvas.height - height) / 2,
+      width,
+      height
+    );
+
+  } else {
+
+    ctx.fillStyle = "#191923";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  }
+
+  // Subtitle background
+  ctx.fillStyle = "rgba(0,0,0,0.75)";
+  ctx.fillRect(0, 950, canvas.width, 330);
+
+  // Subtitle
+  ctx.fillStyle = "white";
+  ctx.font = "bold 38px Arial";
+  ctx.textAlign = "center";
+
+  const words = text.split(" ");
+  let line = "";
+  let y = 1030;
+
+  for (let word of words) {
+
+    if ((line + word).length > 30) {
+
+      ctx.fillText(line, 360, y);
+
+      line = word + " ";
+      y += 55;
+
+    } else {
+
+      line += word + " ";
+
+    }
+
+  }
+
+  if (line) {
+    ctx.fillText(line, 360, y);
+  }
+
+}
+
+// PREVIEW
+async function previewVideo() {
+
+  await drawScene(1);
+
+  document.getElementById("status").innerText =
+    "Previewing Part 1";
+
+  setTimeout(async () => {
+
+    await drawScene(2);
+
+    document.getElementById("status").innerText =
+      "Previewing Part 2";
+
+  }, 10000);
+
+}
+
+// VIDEO GENERATION
+async function downloadVideo() {
+
+  if (!document.getElementById("scene1").value ||
+      !document.getElementById("scene2").value) {
+
+    alert("Generate your story and split it into two parts first.");
+
+    return;
+
+  }
+
+  document.getElementById("status").innerText =
+    "Generating 20-second video...";
+
+  const stream = canvas.captureStream(30);
+
+  // Add recorded voice to the video if available
+  let audioContext;
+  let audioSource;
+
+  if (audioBlob) {
+
+    audioContext = new AudioContext();
+
+    const audioDestination =
+      audioContext.createMediaStreamDestination();
+
+    const audioElement = new Audio(audioURL);
+
+    audioElement.loop = true;
+
+    audioSource =
+      audioContext.createMediaElementSource(audioElement);
+
+    audioSource.connect(audioDestination);
+
+    audioDestination.stream.getAudioTracks().forEach(track => {
+      stream.addTrack(track);
+    });
+
+    audioElement.play();
+
+  }
+
+  let mimeType = "video/webm";
+
+  if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
+    mimeType = "video/webm;codecs=vp9";
+  }
+
+  const videoRecorder = new MediaRecorder(stream, {
+    mimeType
+  });
+
+  let chunks = [];
+
+  videoRecorder.ondataavailable = e => {
+    if (e.data.size > 0) {
+      chunks.push(e.data);
+    }
+  };
+
+  videoRecorder.onstop = async () => {
+
+    const videoBlob = new Blob(chunks, {
+      type: mimeType
+    });
+
+    const url = URL.createObjectURL(videoBlob);
+
+    const a = document.createElement("a");
+
+    a.href = url;
+
+    a.download = "StoryVid-20-Second-Video.webm";
+
+    a.click();
+
+    document.getElementById("status").innerText =
+      "Video downloaded successfully!";
+
+    if (audioContext) {
+      await audioContext.close();
+    }
+
+  };
+
+  videoRecorder.start();
+
+  // Part 1 = 10 seconds
+  await drawScene(1);
+
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  // Part 2 = 10 seconds
+  await drawScene(2);
+
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  videoRecorder.stop();
+
+}
+
 </script>
+
 </body>
 </html>

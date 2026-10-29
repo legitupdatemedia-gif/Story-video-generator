@@ -1,254 +1,983 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Story Video Generator</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>StoryVid AI - Story Video Maker</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
 <style>
-:root{--bg:#100e18;--card:#211d2c;--line:#393244;--purple:#9b5cff;--yellow:#ffe33d;--text:#f8f5ff;--muted:#aaa2b8}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,Arial,sans-serif}.wrap{max-width:900px;margin:auto;padding:24px 16px 60px}h1{font-size:clamp(25px,5vw,38px);margin:0 0 6px}header p{color:var(--muted);margin:0 0 22px}.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;margin:14px 0}.card h2{font-size:20px;margin:0 0 4px}.hint{color:var(--muted);font-size:14px;margin:0 0 16px}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.field{flex:1;min-width:170px}label{display:block;font-weight:650;margin-bottom:8px}input,select,textarea,button{font:inherit}input[type=file],input[type=number],select,textarea{width:100%;border:1px solid var(--line);background:#17141f;color:var(--text);border-radius:12px;padding:12px}input[type=range]{width:100%;accent-color:var(--purple)}.musicgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.music{border:1px solid var(--line);border-radius:15px;padding:14px;background:#191622;cursor:pointer}.music.active{border:2px solid var(--purple);background:#282036}.music strong{display:block}.music small{color:var(--muted)}.preview{position:relative;background:#000;border-radius:18px;overflow:hidden;aspect-ratio:9/16;max-height:540px;margin:16px auto;display:flex;align-items:center;justify-content:center}.preview img{width:100%;height:100%;object-fit:contain}.caption{position:absolute;left:5%;right:5%;bottom:10%;text-align:center;color:var(--yellow);font-weight:900;font-size:clamp(18px,4vw,30px);text-shadow:3px 3px 0 #000,-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000;white-space:pre-wrap}.btn{border:0;border-radius:13px;padding:13px 18px;background:var(--purple);color:white;font-weight:800;cursor:pointer}.btn.secondary{background:#393244}.btn:disabled{opacity:.5;cursor:wait}.status{color:var(--muted);font-size:14px;margin-top:10px}.note{font-size:13px;color:var(--muted)}@media(max-width:560px){.card{padding:16px}.musicgrid{grid-template-columns:1fr 1fr}}
+body {
+    background: #0F0F14;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+.card {
+    background: #1A1A22;
+    border: 1px solid #2A2A35;
+}
+
+.purple {
+    background: #8B5CF6;
+}
+
+.purple:hover {
+    background: #7C3AED;
+}
+
+.selected {
+    border: 2px solid #8B5CF6 !important;
+    background: #261B40 !important;
+}
+
+button {
+    cursor: pointer;
+}
+
+textarea, input, select {
+    color: white;
+}
+
+.scene-image {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.progress {
+    height: 8px;
+    background: #333;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #8B5CF6;
+    transition: width 0.3s;
+}
+
+video {
+    width: 100%;
+    border-radius: 12px;
+    background: black;
+}
+
+.hidden {
+    display: none;
+}
 </style>
 </head>
-<body><main class="wrap">
-<header><h1>🎬 Story Video Generator</h1><p>Turn your story images, narration, music, and subtitles into a vertical video.</p></header>
-<section class="card"><h2>1. Add your images</h2><p class="hint">Select images in the order you want them to appear.</p><input id="images" type="file" accept="image/*" multiple><p class="note" id="imageCount">No images selected yet.</p></section>
-<section class="card"><h2>2. Timing</h2><p class="hint">How long each photo stays on screen.</p><label for="duration">Duration per image: <span id="durationVal">10</span>s</label><input id="duration" type="range" min="3" max="30" value="10"><div class="status" id="totalTime">Total video time: 0s</div></section>
-<section class="card"><h2>3. Background music</h2><p class="hint">Choose a mood. You can also upload your own music.</p><div class="musicgrid" id="musicGrid"><div class="music active" data-music="none"><strong>None</strong><small>No music</small></div><div class="music" data-music="inspiring"><strong>Inspiring</strong><small>Warm, hopeful</small></div><div class="music" data-music="emotional"><strong>Emotional</strong><small>Soft, slow</small></div><div class="music" data-music="drums"><strong>African drums</strong><small>Rhythmic</small></div></div><div style="margin-top:16px"><label>Upload music (optional)</label><input id="musicFile" type="file" accept="audio/*"></div><label for="volume" style="margin-top:14px">Music volume: <span id="volumeVal">30</span>%</label><input id="volume" type="range" min="0" max="100" value="30"></section>
-<section class="card"><h2>4. Narration and subtitles</h2><p class="hint">Upload recorded narration, then enter the story captions to show on screen.</p><label>Voice narration (optional)</label><input id="voiceFile" type="file" accept="audio/*"><label style="margin-top:14px">Story subtitles</label><textarea id="subtitles" rows="5" placeholder="Paste your story here. The text will be split across the images."></textarea><p class="note">Subtitles appear in bold yellow with a black outline, TikTok-style.</p></section>
-<section class="card"><h2>5. Preview and export</h2><div class="preview" id="preview"><div class="caption" id="caption">Your story appears right here,<br>line by line</div></div><div class="row"><button class="btn secondary" id="prev">◀ Previous</button><button class="btn secondary" id="next">Next ▶</button><button class="btn" id="export">Export video</button></div><p class="status" id="status">Add images to preview your story.</p><p class="note">Export creates a WebM video. On GitHub Pages, use Chrome or another modern browser. Audio tracks are included when supported by your browser.</p></section>
-</main>
+
+<body>
+
+<div class="max-w-3xl mx-auto p-4">
+
+<!-- HEADER -->
+
+<header class="text-center py-6">
+
+<h1 class="text-4xl font-bold">
+🎬 StoryVid AI
+</h1>
+
+<p class="text-gray-400 mt-2">
+Turn your stories into narrated cinematic videos
+</p>
+
+<p class="text-xs text-purple-400 mt-2">
+Create your own African stories
+</p>
+
+</header>
+
+<!-- STEP INDICATOR -->
+
+<div class="flex gap-2 mb-6">
+
+<div id="step1" class="progress flex-1">
+<div class="progress-bar" style="width:100%"></div>
+</div>
+
+<div id="step2" class="progress flex-1">
+<div class="progress-bar"></div>
+</div>
+
+<div id="step3" class="progress flex-1">
+<div class="progress-bar"></div>
+</div>
+
+</div>
+
+<!-- SCRIPT PAGE -->
+
+<section id="page1" class="card rounded-2xl p-5">
+
+<h2 class="text-xl font-bold mb-4">
+📝 Write Your Story
+</h2>
+
+<label class="text-sm font-bold">
+Story Prompt / Script
+</label>
+
+<textarea
+id="script"
+maxlength="10000"
+class="w-full mt-2 p-4 rounded-xl bg-black border border-gray-700 h-40"
+placeholder="Write your story here..."
+>In Freetown, Sierra Leone, a young girl named Aisha had a big dream to tell African stories to the world. Every day after school, she learned video editing on her old laptop, even when the light went off. She never gave up. One day, her story video went viral with one million views. Now Aisha teaches other children in Freetown how to create their own story videos and inspire the world.</textarea>
+
+<div class="text-right text-xs text-gray-400 mt-1">
+<span id="count">0</span> / 10000
+</div>
+
+<!-- VOICE -->
+
+<h3 class="font-bold mt-6">
+🎙️ Choose Narrator Voice
+</h3>
+
+<div class="grid grid-cols-3 gap-2 mt-3">
+
+<button onclick="setVoice('male')" id="v-male"
+class="card p-3 rounded-xl">
+👨 Male
+<div class="text-xs text-gray-400 mt-1">
+Deep voice
+</div>
+</button>
+
+<button onclick="setVoice('female')" id="v-female"
+class="card p-3 rounded-xl selected">
+👩 Female
+<div class="text-xs text-gray-400 mt-1">
+Warm voice
+</div>
+</button>
+
+<button onclick="setVoice('kid')" id="v-kid"
+class="card p-3 rounded-xl">
+🧒 Kid
+<div class="text-xs text-gray-400 mt-1">
+Young voice
+</div>
+</button>
+
+</div>
+
+<!-- LANGUAGE -->
+
+<h3 class="font-bold mt-6">
+🌍 Language
+</h3>
+
+<select id="language"
+class="w-full p-3 mt-2 rounded-xl bg-black border border-gray-700">
+
+<option value="en-US">English (US)</option>
+<option value="en-GB">English (UK)</option>
+<option value="en-SL">Sierra Leone English</option>
+<option value="krio">Krio</option>
+
+</select>
+
+<!-- STYLE -->
+
+<h3 class="font-bold mt-6">
+🎨 Video Style
+</h3>
+
+<div class="grid grid-cols-2 gap-2 mt-3">
+
+<button onclick="setStyle('cinematic')" id="style-cinematic"
+class="card p-3 rounded-xl selected">
+🎬 Cinematic
+</button>
+
+<button onclick="setStyle('realistic')" id="style-realistic"
+class="card p-3 rounded-xl">
+📷 Realistic
+</button>
+
+<button onclick="setStyle('anime')" id="style-anime"
+class="card p-3 rounded-xl">
+🎌 Anime
+</button>
+
+<button onclick="setStyle('cartoon')" id="style-cartoon"
+class="card p-3 rounded-xl">
+🎨 Cartoon
+</button>
+
+</div>
+
+<!-- SCENE SETTINGS -->
+
+<h3 class="font-bold mt-6">
+🎞️ Scene Settings
+</h3>
+
+<label class="block text-sm text-gray-400 mt-3">
+Images per story
+</label>
+
+<select id="sceneCount"
+class="w-full p-3 mt-2 rounded-xl bg-black border border-gray-700">
+
+<option value="3">3 Scenes</option>
+<option value="5" selected>5 Scenes</option>
+<option value="8">8 Scenes</option>
+<option value="10">10 Scenes</option>
+
+</select>
+
+<label class="block text-sm text-gray-400 mt-4">
+Image duration
+</label>
+
+<select id="duration"
+class="w-full p-3 mt-2 rounded-xl bg-black border border-gray-700">
+
+<option value="5">5 seconds</option>
+<option value="8" selected>8 seconds</option>
+<option value="10">10 seconds</option>
+
+</select>
+
+<!-- ACTIONS -->
+
+<div class="grid grid-cols-1 gap-3 mt-6">
+
+<button onclick="previewVoice()"
+class="card p-4 rounded-xl">
+🔊 Preview Voice
+</button>
+
+<button onclick="generateScenes()"
+class="purple p-4 rounded-xl font-bold">
+✨ Generate Story Scenes
+</button>
+
+</div>
+
+</section>
+
+<!-- SCENES PAGE -->
+
+<section id="page2" class="hidden mt-6">
+
+<div class="card rounded-2xl p-5">
+
+<h2 class="text-xl font-bold">
+🖼️ Story Scenes
+</h2>
+
+<p class="text-gray-400 text-sm mt-2">
+Your story will be divided into scenes.
+Each scene will have a matching image.
+</p>
+
+<div id="scenes" class="space-y-4 mt-5"></div>
+
+<button onclick="generateNarration()"
+class="purple w-full p-4 rounded-xl font-bold mt-6">
+🎙️ Generate Narration
+</button>
+
+<button onclick="backToScript()"
+class="card w-full p-3 rounded-xl mt-3">
+← Back
+</button>
+
+</div>
+
+</section>
+
+<!-- GENERATE PAGE -->
+
+<section id="page3" class="hidden mt-6">
+
+<div class="card rounded-2xl p-5">
+
+<h2 class="text-xl font-bold">
+🎥 Video Creator
+</h2>
+
+<p class="text-gray-400 mt-2">
+Generate your story video with narration and subtitles.
+</p>
+
+<div class="mt-5">
+
+<label class="text-sm">
+Narration speed
+</label>
+
+<input
+type="range"
+id="speed"
+min="0.7"
+max="1.3"
+step="0.1"
+value="1"
+class="w-full mt-2"
+/>
+
+</div>
+
+<div class="mt-5">
+
+<label class="text-sm">
+Voice volume
+</label>
+
+<input
+type="range"
+id="volume"
+min="0"
+max="1"
+step="0.1"
+value="1"
+class="w-full mt-2"
+/>
+
+</div>
+
+<div class="mt-5">
+
+<label class="text-sm">
+Subtitle text
+</label>
+
+<select id="subtitle"
+class="w-full p-3 mt-2 rounded-xl bg-black border border-gray-700">
+
+<option value="yes">Show subtitles</option>
+<option value="no">Hide subtitles</option>
+
+</select>
+
+</div>
+
+<div id="status"
+class="text-purple-400 text-sm mt-5">
+Ready to create your video.
+</div>
+
+<div class="progress mt-3">
+<div id="progressBar" class="progress-bar"></div>
+</div>
+
+<button onclick="createVideo()"
+id="createBtn"
+class="purple w-full p-4 rounded-xl font-bold mt-6">
+🎬 Create Video
+</button>
+
+<div id="videoResult" class="hidden mt-6">
+
+<h3 class="font-bold mb-3">
+Your Story Video
+</h3>
+
+<video id="resultVideo" controls></video>
+
+<a id="downloadBtn"
+class="block purple text-center p-4 rounded-xl font-bold mt-4"
+download="storyvid-video.webm">
+⬇ Download Video
+</a>
+
+</div>
+
+<button onclick="backToScenes()"
+class="card w-full p-3 rounded-xl mt-3">
+← Back to Scenes
+</button>
+
+</div>
+
+</section>
+
+</div>
+
 <script>
-const $ = id => document.getElementById(id);
-let files = [];
-let urls = [];
-let idx = 0;
-let mood = 'none';
 
-function seconds() {
-  return Number($('duration').value);
-}
+// APP SETTINGS
 
-function updateTime() {
-  const total = files.length * seconds();
-  $('durationVal').textContent = seconds();
-  $('totalTime').textContent = `Total video time: ${files.length} images × ${seconds()}s = ${total}s (${Math.floor(total / 60)}m ${total % 60}s)`;
-}
+let selectedVoice = "female";
+let selectedStyle = "cinematic";
 
-function lines() {
-  const text = $('subtitles').value.trim();
-  if (!text) return [];
-  return text.split(/\n+/).flatMap(line => line.match(/.{1,95}(?:\s|$)/g) || [line]).map(line => line.trim()).filter(Boolean);
-}
+let storyScenes = [];
+let currentVoices = [];
 
-function show() {
-  const preview = $('preview');
-  preview.querySelector('img')?.remove();
-  if (files[idx]) {
-    const image = document.createElement('img');
-    image.src = urls[idx];
-    preview.prepend(image);
-    $('imageCount').textContent = `${files.length} image(s) selected · Preview ${idx + 1}/${files.length}`;
-  } else {
-    $('imageCount').textContent = 'No images selected yet.';
-  }
-  const captions = lines();
-  $('caption').textContent = captions.length ? captions[Math.min(idx, captions.length - 1)] : 'Your story appears right here,\nline by line';
-  updateTime();
-}
+let generatedImages = [];
 
-$('images').addEventListener('change', event => {
-  urls.forEach(url => URL.revokeObjectURL(url));
-  files = [...event.target.files];
-  urls = files.map(file => URL.createObjectURL(file));
-  idx = 0;
-  show();
-});
-$('duration').addEventListener('input', updateTime);
-$('volume').addEventListener('input', () => $('volumeVal').textContent = $('volume').value);
-$('prev').onclick = () => {
-  if (files.length) {
-    idx = (idx - 1 + files.length) % files.length;
-    show();
-  }
-};
-$('next').onclick = () => {
-  if (files.length) {
-    idx = (idx + 1) % files.length;
-    show();
-  }
-};
+let currentVideoBlob = null;
 
-document.querySelectorAll('.music').forEach(element => {
-  element.onclick = () => {
-    document.querySelectorAll('.music').forEach(item => item.classList.remove('active'));
-    element.classList.add('active');
-    mood = element.dataset.music;
-  };
+// COUNT CHARACTERS
+
+const script = document.getElementById("script");
+
+script.addEventListener("input", () => {
+document.getElementById("count").innerText =
+script.value.length;
 });
 
-function wrapText(context, text, maxWidth) {
-  const words = text.split(/\s+/);
-  const rows = [];
-  let row = '';
-  for (const word of words) {
-    const candidate = row ? `${row} ${word}` : word;
-    if (row && context.measureText(candidate).width > maxWidth) {
-      rows.push(row);
-      row = word;
-    } else {
-      row = candidate;
-    }
-  }
-  if (row) rows.push(row);
-  return rows;
+document.getElementById("count").innerText =
+script.value.length;
+
+
+// VOICE SELECT
+
+function setVoice(voice) {
+
+selectedVoice = voice;
+
+["male","female","kid"].forEach(v => {
+
+document.getElementById("v-"+v)
+.classList.remove("selected");
+
+});
+
+document.getElementById("v-"+voice)
+.classList.add("selected");
+
 }
 
-$('export').onclick = async () => {
-  if (!files.length) {
-    $('status').textContent = 'Please add images first.';
-    return;
-  }
 
-  const button = $('export');
-  button.disabled = true;
-  $('status').textContent = 'Preparing video…';
+// STYLE SELECT
 
-  let audioContext;
-  let recorder;
-  let stream;
-  const sources = [];
-  try {
-    if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) {
-      throw new Error('Video export is not supported in this browser. Try a current version of Chrome or Edge.');
-    }
+function setStyle(style) {
 
-    const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
-      .find(type => MediaRecorder.isTypeSupported(type));
-    if (!mimeType) throw new Error('This browser does not support WebM video recording.');
+selectedStyle = style;
 
-    const width = 720;
-    const height = 1280;
-    const durationMs = seconds() * 1000;
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('Could not create the video canvas.');
+["cinematic","realistic","anime","cartoon"]
+.forEach(s => {
 
-    $('status').textContent = 'Loading images and audio…';
-    const images = await Promise.all(urls.map(async url => {
-      const image = new Image();
-      image.src = url;
-      await image.decode();
-      return image;
-    }));
+document.getElementById("style-"+s)
+.classList.remove("selected");
 
-    const musicFile = $('musicFile').files[0];
-    const voiceFile = $('voiceFile').files[0];
-    const hasAudio = Boolean(musicFile || voiceFile);
-    let destination;
-    let musicBuffer;
-    let voiceBuffer;
-    if (hasAudio) {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) throw new Error('Audio processing is not supported in this browser.');
-      audioContext = new AudioContextClass();
-      destination = audioContext.createMediaStreamDestination();
-      if (musicFile) musicBuffer = await audioContext.decodeAudioData(await musicFile.arrayBuffer());
-      if (voiceFile) voiceBuffer = await audioContext.decodeAudioData(await voiceFile.arrayBuffer());
-      await audioContext.resume();
-    } else if (mood !== 'none') {
-      $('status').textContent = 'Mood presets are visual choices only. Upload a music file to include sound.';
-    }
+});
 
-    stream = canvas.captureStream(30);
-    if (destination) {
-      destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
-    }
-    recorder = new MediaRecorder(stream, { mimeType });
-    const chunks = [];
-    recorder.ondataavailable = event => {
-      if (event.data.size) chunks.push(event.data);
-    };
-    const recordingDone = new Promise((resolve, reject) => {
-      recorder.onstop = resolve;
-      recorder.onerror = event => reject(event.error || new Error('The browser stopped recording unexpectedly.'));
-    });
+document.getElementById("style-"+style)
+.classList.add("selected");
 
-    const captions = lines();
-    const musicVolume = Number($('volume').value) / 100;
-    const addSource = (buffer, volume, loop) => {
-      if (!buffer) return;
-      const source = audioContext.createBufferSource();
-      source.buffer = buffer;
-      source.loop = loop;
-      const gain = audioContext.createGain();
-      gain.gain.value = volume;
-      source.connect(gain).connect(destination);
-      sources.push(source);
-    };
-    addSource(musicBuffer, musicVolume, true);
-    addSource(voiceBuffer, 1, false);
+}
 
-    $('status').textContent = 'Recording video…';
-    recorder.start();
-    sources.forEach(source => source.start());
 
-    for (let i = 0; i < images.length; i++) {
-      const image = images[i];
-      const scale = Math.min(width / image.width, height / image.height);
-      const imageWidth = image.width * scale;
-      const imageHeight = image.height * scale;
-      const caption = captions.length ? captions[Math.min(i, captions.length - 1)] : '';
-      context.font = 'bold 42px Arial';
-      context.textAlign = 'center';
-      context.textBaseline = 'middle';
-      const rows = wrapText(context, caption, width * 0.88);
-      const lineHeight = 52;
-      const firstY = height * 0.82 - ((rows.length - 1) * lineHeight) / 2;
-      const start = performance.now();
+// GET BROWSER VOICES
 
-      while (performance.now() - start < durationMs) {
-        context.fillStyle = '#000';
-        context.fillRect(0, 0, width, height);
-        context.drawImage(image, (width - imageWidth) / 2, (height - imageHeight) / 2, imageWidth, imageHeight);
-        rows.forEach((row, rowIndex) => {
-          const y = firstY + rowIndex * lineHeight;
-          context.lineWidth = 7;
-          context.strokeStyle = '#000';
-          context.strokeText(row, width / 2, y, width * 0.9);
-          context.fillStyle = '#ffe33d';
-          context.fillText(row, width / 2, y, width * 0.9);
-        });
-        await new Promise(resolve => requestAnimationFrame(resolve));
-      }
-    }
+function loadVoices() {
 
-    recorder.stop();
-    await recordingDone;
-    const blob = new Blob(chunks, { type: recorder.mimeType || mimeType });
-    const downloadUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = 'story-video.webm';
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000);
-    $('status').textContent = 'Video exported! Check your Downloads folder.';
-  } catch (error) {
-    if (recorder?.state === 'recording') recorder.stop();
-    $('status').textContent = `Export failed: ${error.message}`;
-  } finally {
-    sources.forEach(source => {
-      try {
-        source.stop();
-      } catch {
-        // A source that never started does not need stopping.
-      }
-    });
-    stream?.getTracks().forEach(track => track.stop());
-    if (audioContext && audioContext.state !== 'closed') await audioContext.close();
-    button.disabled = false;
-  }
+currentVoices = speechSynthesis.getVoices();
+
+}
+
+speechSynthesis.onvoiceschanged = loadVoices;
+
+loadVoices();
+
+
+// SELECT VOICE
+
+function getSelectedVoice() {
+
+let lang = document.getElementById("language").value;
+
+let voices = currentVoices;
+
+let englishVoices = voices.filter(v =>
+v.lang.toLowerCase().startsWith("en")
+);
+
+if(selectedVoice === "male") {
+
+return englishVoices.find(v =>
+/male|david|mark|james|daniel/i.test(v.name)
+) || englishVoices[0];
+
+}
+
+if(selectedVoice === "female") {
+
+return englishVoices.find(v =>
+/female|zira|samantha|susan|victoria/i.test(v.name)
+) || englishVoices[0];
+
+}
+
+return englishVoices.find(v =>
+/child|kid|young/i.test(v.name)
+) || englishVoices[0];
+
+}
+
+
+// PREVIEW VOICE
+
+function previewVoice() {
+
+if(!("speechSynthesis" in window)) {
+
+alert("Your browser does not support voice narration.");
+
+return;
+
+}
+
+speechSynthesis.cancel();
+
+let utterance = new SpeechSynthesisUtterance(
+script.value.substring(0,500)
+);
+
+utterance.voice = getSelectedVoice();
+
+utterance.rate = 1;
+
+utterance.pitch =
+selectedVoice === "male" ? 0.8 :
+selectedVoice === "kid" ? 1.4 : 1;
+
+speechSynthesis.speak(utterance);
+
+}
+
+
+// SPLIT STORY INTO SCENES
+
+function splitStory(text, numberOfScenes) {
+
+let sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
+
+sentences = sentences.map(s => s.trim()).filter(Boolean);
+
+let scenes = [];
+
+let perScene = Math.ceil(sentences.length / numberOfScenes);
+
+for(let i=0; i<numberOfScenes; i++) {
+
+let start = i * perScene;
+
+let part = sentences.slice(start, start + perScene);
+
+if(part.length > 0) {
+
+scenes.push(part.join(" "));
+
+}
+
+}
+
+return scenes;
+
+}
+
+
+// CREATE IMAGE PROMPT
+
+function createImagePrompt(scene) {
+
+let style = selectedStyle;
+
+return `Create a beautiful ${style} cinematic image for this story scene:
+
+${scene}
+
+The image should visually match the story text.
+African characters when appropriate.
+Cinematic lighting.
+High quality.
+16:9 widescreen.
+No text or watermark.`;
+
+}
+
+
+// GENERATE SCENES
+
+async function generateScenes() {
+
+let text = script.value.trim();
+
+if(!text) {
+
+alert("Please write your story first.");
+
+return;
+
+}
+
+let number = parseInt(
+document.getElementById("sceneCount").value
+);
+
+storyScenes = splitStory(text, number);
+
+if(storyScenes.length === 0) {
+
+alert("Please enter a longer story.");
+
+return;
+
+}
+
+generatedImages = [];
+
+document.getElementById("scenes").innerHTML = "";
+
+storyScenes.forEach((scene,index) => {
+
+let imagePrompt = createImagePrompt(scene);
+
+let card = document.createElement("div");
+
+card.className = "card p-3 rounded-xl";
+
+card.innerHTML = `
+
+<h3 class="font-bold">
+Scene ${index+1}
+</h3>
+
+<p class="text-gray-400 text-sm mt-2">
+${escapeHTML(scene)}
+</p>
+
+<div class="mt-3 p-3 bg-black rounded-xl">
+
+<p class="text-xs text-purple-400">
+Image Prompt
+</p>
+
+<p class="text-sm mt-2">
+${escapeHTML(imagePrompt)}
+</p>
+
+</div>
+
+`;
+
+document.getElementById("scenes")
+.appendChild(card);
+
+});
+
+// Show page
+
+document.getElementById("page1").classList.add("hidden");
+
+document.getElementById("page2").classList.remove("hidden");
+
+document.getElementById("step2")
+.querySelector(".progress-bar").style.width = "100%";
+
+}
+
+
+// GENERATE NARRATION
+
+function generateNarration() {
+
+if(!storyScenes.length) {
+
+alert("Generate scenes first.");
+
+return;
+
+}
+
+document.getElementById("page2").classList.add("hidden");
+
+document.getElementById("page3").classList.remove("hidden");
+
+document.getElementById("step3")
+.querySelector(".progress-bar").style.width = "100%";
+
+}
+
+
+// CREATE VIDEO
+
+async function createVideo() {
+
+if(!storyScenes.length) {
+
+alert("Please generate your story scenes first.");
+
+return;
+
+}
+
+let btn = document.getElementById("createBtn");
+
+btn.disabled = true;
+
+btn.innerText = "Generating Video...";
+
+let status = document.getElementById("status");
+
+status.innerText = "Preparing scenes...";
+
+try {
+
+// Canvas video
+
+let canvas = document.createElement("canvas");
+
+canvas.width = 1280;
+canvas.height = 720;
+
+let ctx = canvas.getContext("2d");
+
+// Capture canvas
+
+let stream = canvas.captureStream(30);
+
+// Recorder
+
+let recorder = new MediaRecorder(stream, {
+mimeType: "video/webm"
+});
+
+let chunks = [];
+
+recorder.ondataavailable = e => {
+
+if(e.data.size > 0) {
+chunks.push(e.data);
+}
+
 };
 
-updateTime();
-</script></body></html>
+recorder.onstop = () => {
+
+let blob = new Blob(chunks, {
+type: "video/webm"
+});
+
+currentVideoBlob = blob;
+
+let url = URL.createObjectURL(blob);
+
+document.getElementById("resultVideo").src = url;
+
+document.getElementById("downloadBtn").href = url;
+
+document.getElementById("videoResult").classList.remove("hidden");
+
+status.innerText = "Video created successfully!";
+
+btn.disabled = false;
+
+btn.innerText = "🎬 Create Video";
+
+};
+
+recorder.start();
+
+let duration = parseInt(
+document.getElementById("duration").value
+);
+
+let totalScenes = storyScenes.length;
+
+let speed = parseFloat(
+document.getElementById("speed").value
+);
+
+let volume = parseFloat(
+document.getElementById("volume").value
+);
+
+let showSubtitles =
+document.getElementById("subtitle").value === "yes";
+
+let sceneIndex = 0;
+
+async function drawScene() {
+
+if(sceneIndex >= totalScenes) {
+
+recorder.stop();
+
+return;
+
+}
+
+let scene = storyScenes[sceneIndex];
+
+let background = new Image();
+
+background.src =
+generatedImages[sceneIndex] ||
+"https://placehold.co/1280x720/1A1A22/FFFFFF?text=StoryVid+AI";
+
+await new Promise(resolve => {
+
+background.onload = resolve;
+
+background.onerror = resolve;
+
+});
+
+ctx.fillStyle = "#111";
+
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+try {
+
+ctx.drawImage(background,0,0,canvas.width,canvas.height);
+
+} catch(e) {}
+
+if(showSubtitles) {
+
+ctx.fillStyle = "rgba(0,0,0,0.7)";
+
+ctx.fillRect(0,canvas.height-130,canvas.width,130);
+
+ctx.fillStyle = "white";
+
+ctx.font = "bold 30px Arial";
+
+ctx.textAlign = "center";
+
+let words = scene.split(" ");
+
+let line = "";
+
+let lines = [];
+
+for(let word of words) {
+
+if((line + word).length > 65) {
+
+lines.push(line);
+
+line = word + " ";
+
+} else {
+
+line += word + " ";
+
+}
+
+}
+
+lines.push(line);
+
+lines.forEach((l,i) => {
+
+ctx.fillText(l.trim(),canvas.width/2,canvas.height-85+i*38);
+
+});
+
+}
+
+// Narration
+
+let utterance = new SpeechSynthesisUtterance(scene);
+
+utterance.voice = getSelectedVoice();
+
+utterance.rate = speed;
+
+utterance.volume = volume;
+
+utterance.pitch =
+selectedVoice === "male" ? 0.8 :
+selectedVoice === "kid" ? 1.4 : 1;
+
+speechSynthesis.speak(utterance);
+
+status.innerText =
+"Generating scene " + (sceneIndex+1) +
+" of " + totalScenes;
+
+// Progress
+
+document.getElementById("progressBar").style.width =
+((sceneIndex+1)/totalScenes*100) + "%";
+
+// Wait for scene duration
+
+await new Promise(resolve =>
+setTimeout(resolve,duration*1000)
+);
+
+sceneIndex++;
+
+drawScene();
+
+}
+
+drawScene();
+
+} catch(error) {
+
+console.error(error);
+
+alert("Video generation failed. Please try again.");
+
+btn.disabled = false;
+
+btn.innerText = "🎬 Create Video";
+
+}
+
+}
+
+
+// NAVIGATION
+
+function backToScript() {
+
+document.getElementById("page2").classList.add("hidden");
+
+document.getElementById("page1").classList.remove("hidden");
+
+}
+
+function backToScenes() {
+
+document.getElementById("page3").classList.add("hidden");
+
+document.getElementById("page2").classList.remove("hidden");
+
+}
+
+
+// ESCAPE HTML
+
+function escapeHTML(text) {
+
+return text.replace(/[&<>"']/g, function(m) {
+
+return {
+
+"&":"&amp;",
+"<":"&lt;",
+">":"&gt;",
+'"':"&quot;",
+"'":"&#039;"
+
+}[m];
+
+});
+
+}
+
+</script>
+
+</body>
+</html>

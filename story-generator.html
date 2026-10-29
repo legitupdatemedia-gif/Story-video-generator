@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Story Video Generator</title>
+<style>
+:root{--bg:#100e18;--card:#211d2c;--line:#393244;--purple:#9b5cff;--yellow:#ffe33d;--text:#f8f5ff;--muted:#aaa2b8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,Arial,sans-serif}.wrap{max-width:900px;margin:auto;padding:24px 16px 60px}h1{font-size:clamp(25px,5vw,38px);margin:0 0 6px}header p{color:var(--muted);margin:0 0 22px}.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;margin:14px 0}.card h2{font-size:20px;margin:0 0 4px}.hint{color:var(--muted);font-size:14px;margin:0 0 16px}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.field{flex:1;min-width:170px}label{display:block;font-weight:650;margin-bottom:8px}input,select,textarea,button{font:inherit}input[type=file],input[type=number],select,textarea{width:100%;border:1px solid var(--line);background:#17141f;color:var(--text);border-radius:12px;padding:12px}input[type=range]{width:100%;accent-color:var(--purple)}.musicgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.music{border:1px solid var(--line);border-radius:15px;padding:14px;background:#191622;cursor:pointer}.music.active{border:2px solid var(--purple);background:#282036}.music strong{display:block}.music small{color:var(--muted)}.preview{position:relative;background:#000;border-radius:18px;overflow:hidden;aspect-ratio:9/16;max-height:540px;margin:16px auto;display:flex;align-items:center;justify-content:center}.preview img{width:100%;height:100%;object-fit:contain}.caption{position:absolute;left:5%;right:5%;bottom:10%;text-align:center;color:var(--yellow);font-weight:900;font-size:clamp(18px,4vw,30px);text-shadow:3px 3px 0 #000,-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000;white-space:pre-wrap}.btn{border:0;border-radius:13px;padding:13px 18px;background:var(--purple);color:white;font-weight:800;cursor:pointer}.btn.secondary{background:#393244}.btn:disabled{opacity:.5;cursor:wait}.status{color:var(--muted);font-size:14px;margin-top:10px}.note{font-size:13px;color:var(--muted)}@media(max-width:560px){.card{padding:16px}.musicgrid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body><main class="wrap">
+<header><h1>🎬 Story Video Generator</h1><p>Turn your story images, narration, music, and subtitles into a vertical video.</p></header>
+<section class="card"><h2>1. Add your images</h2><p class="hint">Select images in the order you want them to appear.</p><input id="images" type="file" accept="image/*" multiple><p class="note" id="imageCount">No images selected yet.</p></section>
+<section class="card"><h2>2. Timing</h2><p class="hint">How long each photo stays on screen.</p><label for="duration">Duration per image: <span id="durationVal">10</span>s</label><input id="duration" type="range" min="3" max="30" value="10"><div class="status" id="totalTime">Total video time: 0s</div></section>
+<section class="card"><h2>3. Background music</h2><p class="hint">Choose a mood. You can also upload your own music.</p><div class="musicgrid" id="musicGrid"><div class="music active" data-music="none"><strong>None</strong><small>No music</small></div><div class="music" data-music="inspiring"><strong>Inspiring</strong><small>Warm, hopeful</small></div><div class="music" data-music="emotional"><strong>Emotional</strong><small>Soft, slow</small></div><div class="music" data-music="drums"><strong>African drums</strong><small>Rhythmic</small></div></div><div style="margin-top:16px"><label>Upload music (optional)</label><input id="musicFile" type="file" accept="audio/*"></div><label for="volume" style="margin-top:14px">Music volume: <span id="volumeVal">30</span>%</label><input id="volume" type="range" min="0" max="100" value="30"></section>
+<section class="card"><h2>4. Narration and subtitles</h2><p class="hint">Upload recorded narration, then enter the story captions to show on screen.</p><label>Voice narration (optional)</label><input id="voiceFile" type="file" accept="audio/*"><label style="margin-top:14px">Story subtitles</label><textarea id="subtitles" rows="5" placeholder="Paste your story here. The text will be split across the images."></textarea><p class="note">Subtitles appear in bold yellow with a black outline, TikTok-style.</p></section>
+<section class="card"><h2>5. Preview and export</h2><div class="preview" id="preview"><div class="caption" id="caption">Your story appears right here,<br>line by line</div></div><div class="row"><button class="btn secondary" id="prev">◀ Previous</button><button class="btn secondary" id="next">Next ▶</button><button class="btn" id="export">Export video</button></div><p class="status" id="status">Add images to preview your story.</p><p class="note">Export creates a WebM video. On GitHub Pages, use Chrome or another modern browser. Audio tracks are included when supported by your browser.</p></section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let files = [];
+let urls = [];
+let idx = 0;
+let mood = 'none';
+
+function seconds() {
+  return Number($('duration').value);
+}
+
+function updateTime() {
+  const total = files.length * seconds();
+  $('durationVal').textContent = seconds();
+  $('totalTime').textContent = `Total video time: ${files.length} images × ${seconds()}s = ${total}s (${Math.floor(total / 60)}m ${total % 60}s)`;
+}
+
+function lines() {
+  const text = $('subtitles').value.trim();
+  if (!text) return [];
+  return text.split(/\n+/).flatMap(line => line.match(/.{1,95}(?:\s|$)/g) || [line]).map(line => line.trim()).filter(Boolean);
+}
+
+function show() {
+  const preview = $('preview');
+  preview.querySelector('img')?.remove();
+  if (files[idx]) {
+    const image = document.createElement('img');
+    image.src = urls[idx];
+    preview.prepend(image);
+    $('imageCount').textContent = `${files.length} image(s) selected · Preview ${idx + 1}/${files.length}`;
+  } else {
+    $('imageCount').textContent = 'No images selected yet.';
+  }
+  const captions = lines();
+  $('caption').textContent = captions.length ? captions[Math.min(idx, captions.length - 1)] : 'Your story appears right here,\nline by line';
+  updateTime();
+}
+
+$('images').addEventListener('change', event => {
+  urls.forEach(url => URL.revokeObjectURL(url));
+  files = [...event.target.files];
+  urls = files.map(file => URL.createObjectURL(file));
+  idx = 0;
+  show();
+});
+$('duration').addEventListener('input', updateTime);
+$('volume').addEventListener('input', () => $('volumeVal').textContent = $('volume').value);
+$('prev').onclick = () => {
+  if (files.length) {
+    idx = (idx - 1 + files.length) % files.length;
+    show();
+  }
+};
+$('next').onclick = () => {
+  if (files.length) {
+    idx = (idx + 1) % files.length;
+    show();
+  }
+};
+
+document.querySelectorAll('.music').forEach(element => {
+  element.onclick = () => {
+    document.querySelectorAll('.music').forEach(item => item.classList.remove('active'));
+    element.classList.add('active');
+    mood = element.dataset.music;
+  };
+});
+
+function wrapText(context, text, maxWidth) {
+  const words = text.split(/\s+/);
+  const rows = [];
+  let row = '';
+  for (const word of words) {
+    const candidate = row ? `${row} ${word}` : word;
+    if (row && context.measureText(candidate).width > maxWidth) {
+      rows.push(row);
+      row = word;
+    } else {
+      row = candidate;
+    }
+  }
+  if (row) rows.push(row);
+  return rows;
+}
+
+$('export').onclick = async () => {
+  if (!files.length) {
+    $('status').textContent = 'Please add images first.';
+    return;
+  }
+
+  const button = $('export');
+  button.disabled = true;
+  $('status').textContent = 'Preparing video…';
+
+  let audioContext;
+  let recorder;
+  let stream;
+  const sources = [];
+  try {
+    if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) {
+      throw new Error('Video export is not supported in this browser. Try a current version of Chrome or Edge.');
+    }
+
+    const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+      .find(type => MediaRecorder.isTypeSupported(type));
+    if (!mimeType) throw new Error('This browser does not support WebM video recording.');
+
+    const width = 720;
+    const height = 1280;
+    const durationMs = seconds() * 1000;
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Could not create the video canvas.');
+
+    $('status').textContent = 'Loading images and audio…';
+    const images = await Promise.all(urls.map(async url => {
+      const image = new Image();
+      image.src = url;
+      await image.decode();
+      return image;
+    }));
+
+    const musicFile = $('musicFile').files[0];
+    const voiceFile = $('voiceFile').files[0];
+    const hasAudio = Boolean(musicFile || voiceFile);
+    let destination;
+    let musicBuffer;
+    let voiceBuffer;
+    if (hasAudio) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) throw new Error('Audio processing is not supported in this browser.');
+      audioContext = new AudioContextClass();
+      destination = audioContext.createMediaStreamDestination();
+      if (musicFile) musicBuffer = await audioContext.decodeAudioData(await musicFile.arrayBuffer());
+      if (voiceFile) voiceBuffer = await audioContext.decodeAudioData(await voiceFile.arrayBuffer());
+      await audioContext.resume();
+    } else if (mood !== 'none') {
+      $('status').textContent = 'Mood presets are visual choices only. Upload a music file to include sound.';
+    }
+
+    stream = canvas.captureStream(30);
+    if (destination) {
+      destination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
+    }
+    recorder = new MediaRecorder(stream, { mimeType });
+    const chunks = [];
+    recorder.ondataavailable = event => {
+      if (event.data.size) chunks.push(event.data);
+    };
+    const recordingDone = new Promise((resolve, reject) => {
+      recorder.onstop = resolve;
+      recorder.onerror = event => reject(event.error || new Error('The browser stopped recording unexpectedly.'));
+    });
+
+    const captions = lines();
+    const musicVolume = Number($('volume').value) / 100;
+    const addSource = (buffer, volume, loop) => {
+      if (!buffer) return;
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.loop = loop;
+      const gain = audioContext.createGain();
+      gain.gain.value = volume;
+      source.connect(gain).connect(destination);
+      sources.push(source);
+    };
+    addSource(musicBuffer, musicVolume, true);
+    addSource(voiceBuffer, 1, false);
+
+    $('status').textContent = 'Recording video…';
+    recorder.start();
+    sources.forEach(source => source.start());
+
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i];
+      const scale = Math.min(width / image.width, height / image.height);
+      const imageWidth = image.width * scale;
+      const imageHeight = image.height * scale;
+      const caption = captions.length ? captions[Math.min(i, captions.length - 1)] : '';
+      context.font = 'bold 42px Arial';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      const rows = wrapText(context, caption, width * 0.88);
+      const lineHeight = 52;
+      const firstY = height * 0.82 - ((rows.length - 1) * lineHeight) / 2;
+      const start = performance.now();
+
+      while (performance.now() - start < durationMs) {
+        context.fillStyle = '#000';
+        context.fillRect(0, 0, width, height);
+        context.drawImage(image, (width - imageWidth) / 2, (height - imageHeight) / 2, imageWidth, imageHeight);
+        rows.forEach((row, rowIndex) => {
+          const y = firstY + rowIndex * lineHeight;
+          context.lineWidth = 7;
+          context.strokeStyle = '#000';
+          context.strokeText(row, width / 2, y, width * 0.9);
+          context.fillStyle = '#ffe33d';
+          context.fillText(row, width / 2, y, width * 0.9);
+        });
+        await new Promise(resolve => requestAnimationFrame(resolve));
+      }
+    }
+
+    recorder.stop();
+    await recordingDone;
+    const blob = new Blob(chunks, { type: recorder.mimeType || mimeType });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = 'story-video.webm';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000);
+    $('status').textContent = 'Video exported! Check your Downloads folder.';
+  } catch (error) {
+    if (recorder?.state === 'recording') recorder.stop();
+    $('status').textContent = `Export failed: ${error.message}`;
+  } finally {
+    sources.forEach(source => {
+      try {
+        source.stop();
+      } catch {
+        // A source that never started does not need stopping.
+      }
+    });
+    stream?.getTracks().forEach(track => track.stop());
+    if (audioContext && audioContext.state !== 'closed') await audioContext.close();
+    button.disabled = false;
+  }
+};
+
+updateTime();
+</script></body></html>

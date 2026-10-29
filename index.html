@@ -1,487 +1,161 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StoryVid AI - 20 Second Video Maker</title>
-<script src="https://cdn.tailwindcss.com"></script>
-
-<style>
-body {
-  background: #0F0F14;
-  color: white;
-  font-family: Arial, sans-serif;
-}
-.card {
-  background: #1A1A22;
-  border: 1px solid #2A2A35;
-}
-.btn {
-  background: #8B5CF6;
-  color: white;
-}
-textarea, input, select {
-  background: #111118;
-  border: 1px solid #333;
-  color: white;
-}
-</style>
-</head>
-
-<body class="p-3 max-w-xl mx-auto">
-
-<h1 class="text-2xl font-bold text-center mt-4">
-🎬 StoryVid AI
-</h1>
-
-<p class="text-center text-gray-400 text-sm mt-2">
-Generate 20-second story videos
-</p>
-
-<!-- STORY GENERATOR -->
-<div class="card p-4 rounded-xl mt-5">
-
-<h2 class="font-bold mb-3">✍️ Generate Your Story</h2>
-
-<textarea id="prompt"
-class="w-full p-3 rounded-lg h-24"
-placeholder="Enter your story idea..."></textarea>
-
-<button onclick="generateStory()"
-class="btn w-full p-3 rounded-lg mt-3 font-bold">
-✨ Generate Story for Free
-</button>
-
-<textarea id="story"
-class="w-full p-3 rounded-lg h-32 mt-3"
-placeholder="Your generated story will appear here..."></textarea>
-
-<button onclick="splitStory()"
-class="w-full bg-blue-600 p-3 rounded-lg mt-3">
-✂️ Split Story Into 2 Parts
-</button>
-
-</div>
-
-<!-- SCENES -->
-<div class="card p-4 rounded-xl mt-4">
-
-<h2 class="font-bold mb-3">🎞️ Story Scenes</h2>
-
-<div class="mb-4">
-<label class="text-sm">Part 1 (0–10 seconds)</label>
-
-<textarea id="scene1"
-class="w-full p-3 rounded-lg h-24 mt-2"
-placeholder="First part of the story"></textarea>
-
-<input type="file"
-id="image1"
-accept="image/*"
-class="w-full mt-3">
-
-</div>
-
-<div>
-<label class="text-sm">Part 2 (10–20 seconds)</label>
-
-<textarea id="scene2"
-class="w-full p-3 rounded-lg h-24 mt-2"
-placeholder="Second part of the story"></textarea>
-
-<input type="file"
-id="image2"
-accept="image/*"
-class="w-full mt-3">
-
-</div>
-</div>
-
-<!-- VOICE -->
-<div class="card p-4 rounded-xl mt-4">
-
-<h2 class="font-bold mb-3">🎤 Voice Over</h2>
-
-<select id="voice" class="w-full p-3 rounded-lg">
-<option value="male">Male Voice</option>
-<option value="female">Female Voice</option>
-<option value="deep">Deep Voice</option>
-</select>
-
-<button onclick="startRecording()"
-class="w-full bg-green-600 p-3 rounded-lg mt-3">
-🎙️ Record My Voice
-</button>
-
-<button onclick="stopRecording()"
-class="w-full bg-red-600 p-3 rounded-lg mt-2">
-⏹ Stop Recording
-</button>
-
-<audio id="audioPreview" controls class="w-full mt-3"></audio>
-
-</div>
-
-<!-- VIDEO -->
-<div class="card p-4 rounded-xl mt-4">
-
-<h2 class="font-bold mb-3">🎬 Video Preview</h2>
-
-<canvas id="canvas"
-width="720"
-height="1280"
-class="w-full rounded-lg bg-black">
-</canvas>
-
-<button onclick="previewVideo()"
-class="btn w-full p-3 rounded-lg mt-3">
-▶ Preview Video
-</button>
-
-<button onclick="downloadVideo()"
-class="w-full bg-green-600 p-3 rounded-lg mt-3 font-bold">
-⬇️ Generate & Download 20s Video
-</button>
-
-<p id="status"
-class="text-center text-sm text-gray-400 mt-3">
-Ready to create your video
-</p>
-
-</div>
-
-<script>
-
-let recorder;
-let recordedChunks = [];
-let audioBlob = null;
-let audioURL = null;
-
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-
-// FREE STORY GENERATOR
-// Uses a simple built-in story template.
-// Connect an AI API for full prompt-based story generation.
-
-function generateStory() {
-
-  const prompt = document.getElementById("prompt").value.trim();
-
-  if (!prompt) {
-    alert("Enter your story idea first.");
-    return;
-  }
-
-  const story =
-  prompt +
-  ". A new journey begins. Unexpected challenges change everything. " +
-  "Through courage, hope, and determination, the main character discovers " +
-  "that every difficult moment can lead to a brighter future.";
-
-  document.getElementById("story").value = story;
-
-  splitStory();
-
-}
-
-// SPLIT STORY INTO 2 PARTS
-function splitStory() {
-
-  const story = document.getElementById("story").value.trim();
-
-  if (!story) {
-    alert("Generate or enter a story first.");
-    return;
-  }
-
-  const sentences = story.match(/[^.!?]+[.!?]*/g) || [story];
-
-  const midpoint = Math.ceil(sentences.length / 2);
-
-  document.getElementById("scene1").value =
-    sentences.slice(0, midpoint).join(" ").trim();
-
-  document.getElementById("scene2").value =
-    sentences.slice(midpoint).join(" ").trim();
-
-}
-
-// VOICE RECORDING
-async function startRecording() {
-
-  try {
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true
-    });
-
-    recorder = new MediaRecorder(stream);
-
-    recordedChunks = [];
-
-    recorder.ondataavailable = e => {
-      if (e.data.size > 0) {
-        recordedChunks.push(e.data);
-      }
-    };
-
-    recorder.onstop = () => {
-
-      audioBlob = new Blob(recordedChunks, {
-        type: "audio/webm"
-      });
-
-      audioURL = URL.createObjectURL(audioBlob);
-
-      document.getElementById("audioPreview").src = audioURL;
-
-      document.getElementById("status").innerText =
-        "Voice recording ready";
-
-    };
-
-    recorder.start();
-
-    document.getElementById("status").innerText =
-      "Recording your voice...";
-
-  } catch (error) {
-
-    alert("Please allow microphone access.");
-
-  }
-
-}
-
-function stopRecording() {
-
-  if (recorder && recorder.state === "recording") {
-    recorder.stop();
-  }
-
-}
-
-// IMAGE LOADING
-function loadImage(input) {
-
-  return new Promise(resolve => {
-
-    if (!input.files || !input.files[0]) {
-      resolve(null);
-      return;
-    }
-
-    const img = new Image();
-
-    img.onload = () => resolve(img);
-
-    img.src = URL.createObjectURL(input.files[0]);
-
-  });
-
-}
-
-// DRAW SCENE
-async function drawScene(sceneNumber) {
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  let imageInput = sceneNumber === 1
-    ? document.getElementById("image1")
-    : document.getElementById("image2");
-
-  let text = sceneNumber === 1
-    ? document.getElementById("scene1").value
-    : document.getElementById("scene2").value;
-
-  const img = await loadImage(imageInput);
-
-  if (img) {
-
-    const scale = Math.max(
-      canvas.width / img.width,
-      canvas.height / img.height
-    );
-
-    const width = img.width * scale;
-    const height = img.height * scale;
-
-    ctx.drawImage(
-      img,
-      (canvas.width - width) / 2,
-      (canvas.height - height) / 2,
-      width,
-      height
-    );
-
-  } else {
-
-    ctx.fillStyle = "#191923";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  }
-
-  // Subtitle background
-  ctx.fillStyle = "rgba(0,0,0,0.75)";
-  ctx.fillRect(0, 950, canvas.width, 330);
-
-  // Subtitle
-  ctx.fillStyle = "white";
-  ctx.font = "bold 38px Arial";
-  ctx.textAlign = "center";
-
-  const words = text.split(" ");
-  let line = "";
-  let y = 1030;
-
-  for (let word of words) {
-
-    if ((line + word).length > 30) {
-
-      ctx.fillText(line, 360, y);
-
-      line = word + " ";
-      y += 55;
-
-    } else {
-
-      line += word + " ";
-
-    }
-
-  }
-
-  if (line) {
-    ctx.fillText(line, 360, y);
-  }
-
-}
-
-// PREVIEW
-async function previewVideo() {
-
-  await drawScene(1);
-
-  document.getElementById("status").innerText =
-    "Previewing Part 1";
-
-  setTimeout(async () => {
-
-    await drawScene(2);
-
-    document.getElementById("status").innerText =
-      "Previewing Part 2";
-
-  }, 10000);
-
-}
-
-// VIDEO GENERATION
-async function downloadVideo() {
-
-  if (!document.getElementById("scene1").value ||
-      !document.getElementById("scene2").value) {
-
-    alert("Generate your story and split it into two parts first.");
-
-    return;
-
-  }
-
-  document.getElementById("status").innerText =
-    "Generating 20-second video...";
-
-  const stream = canvas.captureStream(30);
-
-  // Add recorded voice to the video if available
-  let audioContext;
-  let audioSource;
-
-  if (audioBlob) {
-
-    audioContext = new AudioContext();
-
-    const audioDestination =
-      audioContext.createMediaStreamDestination();
-
-    const audioElement = new Audio(audioURL);
-
-    audioElement.loop = true;
-
-    audioSource =
-      audioContext.createMediaElementSource(audioElement);
-
-    audioSource.connect(audioDestination);
-
-    audioDestination.stream.getAudioTracks().forEach(track => {
-      stream.addTrack(track);
-    });
-
-    audioElement.play();
-
-  }
-
-  let mimeType = "video/webm";
-
-  if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
-    mimeType = "video/webm;codecs=vp9";
-  }
-
-  const videoRecorder = new MediaRecorder(stream, {
-    mimeType
-  });
-
-  let chunks = [];
-
-  videoRecorder.ondataavailable = e => {
-    if (e.data.size > 0) {
-      chunks.push(e.data);
-    }
-  };
-
-  videoRecorder.onstop = async () => {
-
-    const videoBlob = new Blob(chunks, {
-      type: mimeType
-    });
-
-    const url = URL.createObjectURL(videoBlob);
-
-    const a = document.createElement("a");
-
-    a.href = url;
-
-    a.download = "StoryVid-20-Second-Video.webm";
-
-    a.click();
-
-    document.getElementById("status").innerText =
-      "Video downloaded successfully!";
-
-    if (audioContext) {
-      await audioContext.close();
-    }
-
-  };
-
-  videoRecorder.start();
-
-  // Part 1 = 10 seconds
-  await drawScene(1);
-
-  await new Promise(resolve => setTimeout(resolve, 10000));
-
-  // Part 2 = 10 seconds
-  await drawScene(2);
-
-  await new Promise(resolve => setTimeout(resolve, 10000));
-
-  videoRecorder.stop();
-
-}
-
-</script>
-
-</body>
-</html>
+"""
+Text → Image → Video Generator
+==============================
+One complete script that turns a text prompt into an image and then into a short video.
+
+Models used:
+  - Text-to-Image : Stable Diffusion XL
+  - Image-to-Video: Stable Video Diffusion XT
+
+--------------------------------------------------
+INSTALL (run once):
+    pip install torch torchvision diffusers transformers accelerate pillow
+
+Optional (better speed/VRAM):
+    pip install xformers
+--------------------------------------------------
+
+USAGE EXAMPLES:
+
+    python text_to_image_to_video.py --prompt "a cat wearing sunglasses on a beach"
+
+    python text_to_image_to_video.py \
+        --prompt "cyberpunk city at night, neon lights, rain" \
+        --seed 42 \
+        --motion 150 \
+        --num_frames 25
+
+    python text_to_image_to_video.py --prompt "a red sports car on a mountain road" --device cpu
+"""
+
+import argparse
+from pathlib import Path
+
+import torch
+from diffusers import AutoPipelineForText2Image, StableVideoDiffusionPipeline
+from diffusers.utils import export_to_video
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Generate an image from text and turn it into a video"
+    )
+    parser.add_argument(
+        "--prompt",
+        type=str,
+        required=True,
+        help="Text prompt for the image",
+    )
+    parser.add_argument(
+        "--negative_prompt",
+        type=str,
+        default="blurry, low quality, deformed, ugly, text, watermark, bad anatomy",
+        help="Negative prompt",
+    )
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument("--steps", type=int, default=28, help="Image inference steps")
+    parser.add_argument("--guidance", type=float, default=7.0, help="Guidance scale")
+    parser.add_argument(
+        "--motion",
+        type=int,
+        default=127,
+        help="Motion intensity (1-255). Higher = more movement",
+    )
+    parser.add_argument(
+        "--num_frames", type=int, default=25, help="Number of video frames"
+    )
+    parser.add_argument("--fps", type=int, default=7, help="Output video FPS")
+    parser.add_argument(
+        "--output_dir", type=str, default="outputs", help="Folder to save results"
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda",
+        choices=["cuda", "mps", "cpu"],
+        help="Device to run on",
+    )
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    # Create output folder
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Device & dtype
+    device = args.device
+    if device == "cuda" and not torch.cuda.is_available():
+        print("CUDA not available → falling back to CPU (very slow)")
+        device = "cpu"
+
+    dtype = torch.float16 if device != "cpu" else torch.float32
+    generator = torch.Generator(device=device).manual_seed(args.seed)
+
+    print("=" * 60)
+    print("1/3  Loading Text-to-Image model (SDXL)...")
+    print("=" * 60)
+
+    t2i = AutoPipelineForText2Image.from_pretrained(
+        "stabilityai/stable-diffusion-xl-base-1.0",
+        torch_dtype=dtype,
+        variant="fp16" if device != "cpu" else None,
+        use_safetensors=True,
+    )
+    t2i.enable_model_cpu_offload()
+
+    print("\n2/3  Generating image from prompt...")
+    print(f"     Prompt: {args.prompt}")
+
+    image = t2i(
+        prompt=args.prompt,
+        negative_prompt=args.negative_prompt,
+        num_inference_steps=args.steps,
+        guidance_scale=args.guidance,
+        height=1024,
+        width=1024,
+        generator=generator,
+    ).images[0]
+
+    image_path = output_dir / "generated_image.png"
+    image.save(image_path)
+    print(f"     Image saved → {image_path}")
+
+    # Resize for Stable Video Diffusion (recommended resolution)
+    image = image.resize((1024, 576))
+
+    print("\n3/3  Loading Image-to-Video model (SVD-XT)...")
+    print("=" * 60)
+
+    i2v = StableVideoDiffusionPipeline.from_pretrained(
+        "stabilityai/stable-video-diffusion-img2vid-xt",
+        torch_dtype=dtype,
+        variant="fp16" if device != "cpu" else None,
+    )
+    i2v.enable_model_cpu_offload()
+
+    print("     Generating video... (this may take a minute)")
+
+    frames = i2v(
+        image,
+        decode_chunk_size=8,          # lower = less VRAM
+        generator=generator,
+        num_frames=args.num_frames,
+        motion_bucket_id=args.motion,
+        noise_aug_strength=0.02,
+    ).frames[0]
+
+    video_path = output_dir / "generated_video.mp4"
+    export_to_video(frames, str(video_path), fps=args.fps)
+
+    print("\n" + "=" * 60)
+    print("DONE!")
+    print(f"Image → {image_path}")
+    print(f"Video → {video_path}")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()
